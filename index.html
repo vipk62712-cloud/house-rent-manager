@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rent Manager</title>
+<style>
+:root{
+  --primary:#4f46e5; --primary-dark:#4338ca; --accent:#7c3aed; --bg:#f3f4fb; --card:#fff;
+  --text:#1f2347; --muted:#6b7090; --border:#dfe2f3; --green:#16a34a; --green-bg:#ecfdf3;
+  --red:#dc2626; --amber:#d97706; --radius:14px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+header{background:linear-gradient(135deg,var(--primary),var(--accent));color:#fff;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;box-shadow:0 2px 10px rgba(79,70,229,.3)}
+header h1{margin:0;font-size:20px;letter-spacing:.3px}
+header .stats{font-size:13px;opacity:.95}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button{background:rgba(255,255,255,.15);color:#fff;border:0;padding:8px 16px;border-radius:999px;cursor:pointer;font-size:14px;font-weight:600}
+nav button.active{background:#fff;color:var(--primary)}
+main{max-width:1200px;margin:0 auto;padding:18px}
+.tab{display:none}.tab.active{display:block}
+.panel{background:var(--card);border-radius:var(--radius);padding:18px;box-shadow:0 2px 10px rgba(40,40,100,.07);margin-bottom:16px}
+.panel h2{margin:0 0 14px;font-size:18px;color:var(--primary-dark)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px}
+.house{background:#fff;border:2px dashed #b8bdd9;border-radius:var(--radius);padding:12px;cursor:pointer;transition:.15s;min-height:110px;position:relative}
+.house:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(79,70,229,.18)}
+.house.occ{border:2px solid var(--green);background:var(--green-bg)}
+.house .no{font-size:22px;font-weight:800;color:var(--primary-dark)}
+.house .tn{font-weight:600;margin-top:6px;word-break:break-word}
+.house .meta{font-size:12px;color:var(--muted);margin-top:3px}
+.house.vac .tn{color:var(--muted);font-weight:500;font-style:italic}
+.house .tag{position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--green);color:#fff}
+.house .tag.exp{background:var(--red)}
+.house .tag.soon{background:var(--amber)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px}
+input,select,textarea{width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:15px;font-family:inherit;background:#fff;color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.15)}
+.btn{border:0;padding:9px 18px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;background:var(--primary);color:#fff;transition:.15s}
+.btn:hover{background:var(--primary-dark)}
+.btn.sec{background:#e8eaf8;color:var(--primary-dark)}.btn.sec:hover{background:#d8dbf3}
+.btn.danger{background:var(--red)}.btn.danger:hover{background:#b91c1c}
+.btn.green{background:var(--green)}.btn.green:hover{background:#15803d}
+.btn.accent{background:var(--accent)}.btn.accent:hover{background:#6d28d9}
+.btn.sm{padding:5px 10px;font-size:12px}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.end{justify-content:flex-end}
+.modal-bg{position:fixed;inset:0;background:rgba(20,22,60,.55);display:none;align-items:flex-start;justify-content:center;padding:20px;overflow:auto;z-index:50}
+.modal-bg.show{display:flex}
+.modal{background:#fff;border-radius:18px;width:100%;max-width:820px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,.35);margin:auto}
+.modal h2{margin:0 0 4px;color:var(--primary-dark)}
+.sub{font-size:13px;color:var(--muted);margin-bottom:14px}
+.sect{font-size:13px;font-weight:800;color:var(--accent);margin:18px 0 8px;text-transform:uppercase;letter-spacing:.6px;border-bottom:2px solid #ece9fb;padding-bottom:4px}
+.lease{padding:10px 14px;border-radius:10px;background:#eef0ff;margin-top:12px;font-weight:600}
+.lease.exp{background:#fee2e2;color:var(--red)}
+.lease.soon{background:#fef3c7;color:var(--amber)}
+.member{border:1.5px solid var(--border);border-radius:12px;padding:10px;margin-bottom:10px;background:#fafaff}
+.member .form-grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.totals{background:#f5f3ff;border-radius:12px;padding:14px;margin-top:14px}
+.totals .t{display:flex;justify-content:space-between;padding:3px 0}
+.totals .grand{font-size:22px;font-weight:800;color:var(--primary-dark);border-top:2px solid #d9d4f7;margin-top:6px;padding-top:8px}
+table.list{width:100%;border-collapse:collapse}
+table.list th,table.list td{padding:9px 8px;text-align:left;border-bottom:1px solid var(--border);font-size:14px}
+table.list th{background:#f0f1fb;color:var(--primary-dark);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+.badge{padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700}
+.badge.paid{background:#dcfce7;color:#15803d}.badge.due{background:#fee2e2;color:#b91c1c}
+.scroll{overflow-x:auto}
+.empty{text-align:center;color:var(--muted);padding:24px}
+#printArea{display:none}
+/* ---------- Bill ---------- */
+.bill{width:190mm;min-height:270mm;margin:0 auto;padding:10mm;border:3px double #3730a3;background:#fff;color:#111;font-family:"Segoe UI",Arial,sans-serif;position:relative;page-break-after:always;break-after:page}
+.bill:last-child{page-break-after:auto;break-after:auto}
+.bill .head{text-align:center;border-bottom:3px solid #4f46e5;padding-bottom:8px}
+.bill .head h1{margin:0;font-size:26px;color:#3730a3}
+.bill .head p{margin:3px 0;font-size:13px}
+.bill .title{text-align:center;font-size:18px;font-weight:800;letter-spacing:3px;margin:12px 0;color:#4f46e5}
+.bill .topline{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.bill .badge-no{width:92px;height:92px;border-radius:50%;background:#4f46e5;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill .badge-no small{font-size:11px;letter-spacing:1px}
+.bill .badge-no b{font-size:34px;line-height:1}
+.bill .info{font-size:14px;line-height:1.7;flex:1;padding:0 14px}
+.bill .stamp{position:absolute;top:150px;right:30px;transform:rotate(-14deg);border:4px solid;padding:4px 18px;font-size:34px;font-weight:900;letter-spacing:4px;opacity:.75;border-radius:8px}
+.bill .stamp.paid{color:#15803d;border-color:#15803d}
+.bill .stamp.due{color:#b91c1c;border-color:#b91c1c}
+.bill table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px}
+.bill th,.bill td{border:1px solid #888;padding:7px 9px;text-align:left}
+.bill th{background:#e0e7ff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill td.amt,.bill th.amt{text-align:right;white-space:nowrap}
+.bill .tinfo td:first-child{width:32%;font-weight:700;background:#f5f5ff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill .total td{font-weight:800;font-size:16px;background:#e0e7ff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill .words{margin-top:12px;font-size:14px;border:1px dashed #666;padding:8px 10px}
+.bill .sign{display:flex;justify-content:space-between;margin-top:70px;font-size:13px}
+.bill .sign div{border-top:1.5px solid #333;width:42%;text-align:center;padding-top:4px}
+.bill .foot{text-align:center;font-size:11px;color:#555;margin-top:24px}
+@page{size:A4 portrait;margin:8mm}
+@media print{
+  body{background:#fff}
+  body > *:not(#printArea){display:none!important}
+  #printArea{display:block!important}
+  .bill{border:3px double #3730a3;margin:0 auto}
+}
+@media (max-width:600px){
+  main{padding:10px}.modal{padding:14px}.grid{grid-template-columns:repeat(auto-fill,minmax(135px,1fr))}
+}
+/* =====================  BUSINESS CLASS theme  ===================== */
+:root{
+  --navy:#0b1b33; --navy2:#14305a; --gold:#c9a96a; --gold2:#e8d5a6; --goldd:#8a6d3b; --ivory:#faf8f3; --line:#e4ddcb;
+  --emerald:#1f7a54; --burgundy:#7f1d2d; --serif:Georgia,"Times New Roman",serif;
+  --primary:#0b1b33; --primary-dark:#0b1b33; --accent:#8a6d3b; --border:#d9d2bf; --muted:#6f7685; --text:#14213d; --radius:10px;
+}
+body{background:linear-gradient(180deg,#e9ecf2 0,#faf8f3 280px) fixed,#faf8f3;color:var(--text);letter-spacing:.1px}
+header{
+  position:relative;margin:0;width:100%;max-width:none;border-radius:0;overflow:visible;
+  background:linear-gradient(100deg,#08142a 0%,#0b1b33 45%,#14305a 100%);
+  padding:20px 32px 0;align-items:flex-end;box-shadow:0 6px 24px rgba(8,20,42,.35);border-bottom:2px solid var(--gold)
+}
+header>div:first-child{padding-bottom:14px}
+header::before{content:"";position:absolute;left:0;top:0;height:3px;width:var(--occ,0%);background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .5s;border-radius:0}
+header::after{display:none}
+header h1{font-family:var(--serif);font-weight:400;font-size:24px;letter-spacing:5px;text-transform:uppercase;color:#fff;display:flex;align-items:center;gap:12px}
+header h1 svg{flex:none}
+header .stats{margin-top:5px;font-size:11.5px;letter-spacing:2px;text-transform:uppercase;color:var(--gold2)}
+nav{gap:0}
+nav button{background:transparent;border:0;border-bottom:3px solid transparent;border-radius:0;color:#aebbd1;
+  padding:14px 20px;font-size:12px;letter-spacing:2px;text-transform:uppercase;font-weight:600;transition:.2s}
+nav button:hover{color:#fff;background:rgba(255,255,255,.05)}
+nav button.active{background:rgba(201,169,106,.10);color:var(--gold2);border-bottom-color:var(--gold);box-shadow:none}
+main{padding:26px 20px}
+.panel{background:#fff;border:1px solid var(--line);border-top:3px solid var(--navy);border-radius:var(--radius);
+  box-shadow:0 8px 26px rgba(11,27,51,.07);padding:22px 24px}
+.panel::before{display:none}
+.panel h2{font-family:var(--serif);font-weight:400;font-size:15px;letter-spacing:3px;text-transform:uppercase;color:var(--navy);
+  padding:0 0 12px;margin:0 0 18px;border-bottom:1px solid var(--line);position:relative}
+.panel h2::after{content:"";position:absolute;left:0;bottom:-1px;width:56px;height:2px;background:var(--gold)}
+.panel h2 span{letter-spacing:.3px;text-transform:none;font-family:"Segoe UI",sans-serif}
+.sub{color:var(--muted)}
+.grid{grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:16px}
+.house{
+  text-align:left;border-radius:10px;background:#fff;border:1.5px dashed #b9b2a0;padding:30px 15px 14px;min-height:152px;
+  box-shadow:0 1px 3px rgba(11,27,51,.06)
+}
+.house::before{content:"SUITE";position:absolute;top:11px;left:15px;font-size:9.5px;letter-spacing:3px;font-weight:700;color:var(--goldd)}
+.house::after{display:none}
+.house .no{font-family:var(--serif);font-weight:400;font-size:40px;line-height:1;color:var(--navy)}
+.house .tn{margin-top:10px;font-size:14px;font-weight:600;color:var(--navy)}
+.house .meta{margin-top:10px;padding-top:8px;border-top:1px dashed #cfc7b0;font-size:11.5px;letter-spacing:.4px}
+.house.occ{border:1.5px solid var(--emerald);border-left:6px solid var(--emerald);background:linear-gradient(180deg,#fff 0%,#f0f8f3 100%);box-shadow:none}
+.house.occ .no{color:var(--navy)}
+.house:hover{transform:translateY(-3px);box-shadow:0 14px 26px rgba(11,27,51,.16)}
+.house .tag{top:9px;right:10px;bottom:auto;left:auto;transform:none;border-radius:4px;font-size:9px;letter-spacing:1.2px;padding:3px 7px;background:var(--emerald)}
+.house .tag.exp{background:var(--burgundy)}
+.house .tag.soon{background:var(--goldd)}
+.house.vac .tn{font-style:italic;font-weight:400;color:var(--muted)}
+label{font-size:10.5px;letter-spacing:1.6px;color:#5d6578}
+input,select,textarea{background:#fff;border:1px solid var(--border);border-radius:6px;padding:10px 12px}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,169,106,.28)}
+.btn{background:var(--navy);color:#fff;border:1px solid var(--navy);border-radius:6px;padding:10px 22px;font-size:12px;
+  letter-spacing:1.6px;text-transform:uppercase;font-weight:700;box-shadow:0 3px 8px rgba(11,27,51,.2)}
+.btn:hover{background:var(--navy2);border-color:var(--gold);transform:none}
+.btn.sec{background:#fff;color:var(--navy);border:1px solid var(--navy);box-shadow:none}
+.btn.sec:hover{background:var(--ivory);border-color:var(--goldd)}
+.btn.accent{background:linear-gradient(135deg,var(--gold2),var(--gold));color:var(--navy);border-color:var(--goldd)}
+.btn.accent:hover{background:linear-gradient(135deg,#f1e1b8,#d6b97b)}
+.btn.danger{background:var(--burgundy);border-color:var(--burgundy)}
+.btn.danger:hover{background:#651524}
+.btn.green{background:var(--emerald);border-color:var(--emerald)}
+.btn.green:hover{background:#17623f}
+.btn.sm{padding:6px 11px;font-size:10.5px;letter-spacing:1px;box-shadow:none}
+.modal-bg{background:rgba(8,20,42,.68);backdrop-filter:blur(3px)}
+.modal{border-radius:12px;border-top:6px solid var(--navy);box-shadow:0 30px 70px rgba(0,0,0,.45);position:relative}
+.modal::before{content:"";position:absolute;left:0;right:0;top:-6px;height:2px;background:var(--gold)}
+.modal h2{font-family:var(--serif);font-weight:400;font-size:26px;letter-spacing:2px;color:var(--navy);text-transform:uppercase}
+.sect{font-family:"Segoe UI",sans-serif;font-style:normal;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;
+  color:var(--goldd);border-bottom:1px solid var(--line);padding-bottom:6px}
+.member{background:var(--ivory);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:8px}
+.lease{background:var(--ivory);border:1px solid var(--line);border-left:4px solid var(--navy);border-radius:6px;letter-spacing:.2px}
+.lease.exp{background:#fbeceb;border-left-color:var(--burgundy);color:var(--burgundy)}
+.lease.soon{background:#fbf3df;border-left-color:var(--gold);color:var(--goldd)}
+.totals{background:var(--ivory);border:1px solid var(--line);border-radius:8px;border-left:4px solid var(--gold)}
+.totals .grand{font-family:var(--serif);font-weight:400;font-size:24px;color:var(--navy);border-top:1px solid var(--navy)}
+table.list{border-collapse:collapse;border-spacing:0}
+table.list th{background:var(--navy);color:var(--gold2);font-size:10.5px;letter-spacing:2px;border:0}
+table.list th:first-child{border-radius:6px 0 0 0}table.list th:last-child{border-radius:0 6px 0 0}
+table.list td{border-bottom:1px solid var(--line);background:#fff}
+table.list td:first-child,table.list td:last-child{border-radius:0}
+table.list tbody tr:hover td{background:var(--ivory)}
+.badge{border-radius:4px;letter-spacing:1.2px;font-size:10.5px;padding:3px 9px}
+.badge.paid{background:#e3f4ec;color:var(--emerald);border:1px solid #b7e0cb}
+.badge.due{background:#fbeceb;color:var(--burgundy);border:1px solid #ecc3c8}
+.bill{border:1px solid #0b1b33;outline:1px solid #c9a96a;outline-offset:-7px;border-radius:0;font-family:Georgia,"Times New Roman",serif}
+.bill .head{background:#0b1b33;color:#fff;border-bottom:4px double #c9a96a;border-radius:0;padding:16px 10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill .head h1{color:#fff;letter-spacing:4px;text-transform:uppercase;font-weight:400;font-size:25px}
+.bill .head p{color:#c9d2e3}
+.bill .title{color:#0b1b33;letter-spacing:7px;font-weight:400;font-style:normal;border-top:1px solid #c9a96a;border-bottom:1px solid #c9a96a;padding:7px 0}
+.bill .badge-no{width:92px;height:92px;border-radius:4px;background:#0b1b33;color:#e8d5a6;border:2px solid #c9a96a;border-bottom-width:2px;box-shadow:inset 0 0 0 3px #0b1b33,inset 0 0 0 4px #c9a96a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill .badge-no b{font-weight:400}
+.bill th,.bill td{border:1px solid #cfc6ad}
+.bill th{background:#efe8d6;color:#0b1b33;letter-spacing:1px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill .tinfo td:first-child{background:#f6f1e4;color:#0b1b33;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill .total td{background:#0b1b33;color:#e8d5a6;letter-spacing:1.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill .words{border:1px solid #c9a96a;background:#faf8f3;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.bill .sign div{border-top:1px solid #0b1b33;letter-spacing:1px;text-transform:uppercase;font-size:11px}
+@media print{ body{background:#fff} .bill{border:1px solid #0b1b33} }
+@media (max-width:700px){
+  header{padding:16px 14px 0}header h1{font-size:19px;letter-spacing:3px}
+  nav{width:100%;overflow-x:auto}nav button{padding:12px 13px;white-space:nowrap}
+  .panel{padding:16px 14px}.grid{grid-template-columns:repeat(auto-fill,minmax(145px,1fr))}
+}
+
+/* =====================  PROFESSIONAL TYPE + UNIQUE DETAILS  ===================== */
+:root{
+  --sans:"Inter","Segoe UI Variable Text","Segoe UI","SF Pro Text","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --serif:"Playfair Display","Didot","Bodoni MT","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --display:var(--serif);
+}
+html{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+body{font-family:var(--sans);font-size:14.5px;line-height:1.5;font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1,"cv11" 1}
+input,select,textarea,button{font-family:var(--sans)}
+header h1{font-family:var(--serif);font-weight:500;letter-spacing:6px}
+.panel h2{font-family:var(--sans);font-weight:700;letter-spacing:3px}
+.panel h2 span{font-family:var(--sans)}
+.modal h2{font-family:var(--serif);font-weight:500}
+.sect{font-family:var(--sans)}
+.totals .grand{font-family:var(--serif)}
+header>*:not(.sky){position:relative;z-index:1}
+.sky{position:absolute;right:0;bottom:0;height:100%;width:min(560px,62%);pointer-events:none;z-index:0}
+/* KPI tiles */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px}
+.kpi{position:relative;background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px 14px 22px;overflow:hidden;box-shadow:0 6px 18px rgba(11,27,51,.06)}
+.kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--navy)}
+.kpi.k1::before{background:var(--emerald)}.kpi.k2::before{background:var(--gold)}.kpi.k3::before{background:var(--burgundy)}.kpi.k4::before{background:var(--navy2)}
+.kpi small{display:block;font-size:10.5px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--muted)}
+.kpi b{display:block;font-family:var(--serif);font-weight:500;font-size:34px;line-height:1.15;color:var(--navy);margin:4px 0 2px}
+.kpi span{font-size:12px;color:var(--muted)}
+/* toolbar */
+.toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.toolbar input{max-width:340px;flex:1 1 220px}
+.chips{display:inline-flex;border:1px solid var(--navy);border-radius:8px;overflow:hidden}
+.chips button{background:#fff;color:var(--navy);border:0;border-right:1px solid var(--line);padding:9px 15px;font-size:11px;letter-spacing:1.4px;text-transform:uppercase;font-weight:700;cursor:pointer}
+.chips button:last-child{border-right:0}
+.chips button:hover{background:var(--ivory)}
+.chips button.on{background:var(--navy);color:var(--gold2)}
+/* block headings */
+.block-head{grid-column:1/-1;display:flex;align-items:center;gap:14px;margin-top:12px;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:700;color:var(--goldd);white-space:pre}
+.block-head::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,var(--gold),transparent)}
+.block-head:first-child{margin-top:0}
+/* house cards with watermark number */
+.grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.house{overflow:hidden;min-height:140px}
+.house .no{font-family:var(--serif);font-weight:500;font-size:38px}
+.house::after{display:block;content:attr(data-no);position:absolute;right:6px;bottom:-16px;font-family:var(--serif);font-weight:700;
+  font-size:86px;line-height:1;color:rgba(11,27,51,.045);pointer-events:none}
+.house.occ::after{color:rgba(31,122,84,.10)}
+.house .tn,.house .meta{position:relative;z-index:1}
+/* receipt typography */
+.bill{font-family:var(--sans)}
+.bill .head h1,.bill .title,.bill .badge-no b{font-family:var(--serif)}
+.bill .head h1{font-weight:500;letter-spacing:4px}
+@media (max-width:700px){
+  .kpis{grid-template-columns:repeat(2,1fr)}.kpi b{font-size:26px}.sky{opacity:.5}
+  .chips{width:100%}.chips button{flex:1;padding:9px 6px;letter-spacing:.8px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="sky" viewBox="0 0 520 120" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+    <g fill="rgba(232,213,166,.10)" stroke="rgba(232,213,166,.35)" stroke-width="1">
+      <rect x="20" y="70" width="40" height="50"/><rect x="66" y="44" width="34" height="76"/><rect x="106" y="82" width="46" height="38"/>
+      <rect x="158" y="30" width="38" height="90"/><rect x="202" y="60" width="44" height="60"/><rect x="252" y="18" width="34" height="102"/>
+      <rect x="292" y="52" width="46" height="68"/><rect x="344" y="78" width="36" height="42"/><rect x="386" y="36" width="40" height="84"/>
+      <rect x="432" y="64" width="44" height="56"/><rect x="482" y="86" width="30" height="34"/>
+    </g>
+    <g fill="rgba(232,213,166,.55)">
+      <rect x="170" y="42" width="5" height="6"/><rect x="180" y="42" width="5" height="6"/><rect x="170" y="58" width="5" height="6"/>
+      <rect x="264" y="32" width="5" height="6"/><rect x="274" y="32" width="5" height="6"/><rect x="264" y="48" width="5" height="6"/><rect x="274" y="64" width="5" height="6"/>
+      <rect x="398" y="50" width="5" height="6"/><rect x="408" y="66" width="5" height="6"/><rect x="78" y="58" width="5" height="6"/><rect x="214" y="74" width="5" height="6"/>
+    </g>
+  </svg>
+  <div>
+    <h1><svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><path d="M5 17 17 5l12 12v12a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z" fill="#f5b942"/><path d="M13 31V21a4 4 0 0 1 8 0v10z" fill="#1b1744"/><circle cx="19" cy="25" r="1" fill="#f5b942"/></svg> Rent Manager</h1>
+    <div class="stats" id="stats"></div>
+  </div>
+  <nav id="nav">
+    <button data-tab="houses" class="active">Houses</button>
+    <button data-tab="bills">Bills</button>
+    <button data-tab="history">Bill History</button>
+    <button data-tab="settings">Settings</button>
+  </nav>
+</header>
+
+<main>
+  <!-- HOUSES -->
+  <section id="tab-houses" class="tab active">
+    <div class="kpis">
+      <div class="kpi k1"><small>Occupied</small><b id="kOcc">0</b><span id="kOccSub"></span></div>
+      <div class="kpi k2"><small>Vacant</small><b id="kVac">0</b><span id="kVacSub"></span></div>
+      <div class="kpi k3"><small>Pending dues</small><b id="kDue">₹0</b><span id="kDueSub"></span></div>
+      <div class="kpi k4"><small>Collected this month</small><b id="kColl">₹0</b><span id="kCollSub"></span></div>
+    </div>
+    <div class="panel">
+      <h2>Residence Register <span style="font-size:12px;color:var(--muted);font-weight:500">&nbsp;— click a house to edit tenant</span></h2>
+      <div class="toolbar">
+        <input type="search" id="hSearch" placeholder="Search house no., tenant name or mobile…">
+        <div class="chips" id="hChips">
+          <button data-f="all" class="on">All</button><button data-f="occ">Occupied</button><button data-f="vac">Vacant</button><button data-f="end">Lease ending</button>
+        </div>
+      </div>
+      <div class="grid" id="houseGrid"></div>
+    </div>
+  </section>
+
+  <!-- BILLS -->
+  <section id="tab-bills" class="tab">
+    <div class="panel">
+      <h2>Create / Print Bill</h2>
+      <div class="form-grid">
+        <div><label>House</label><select id="bHouse"></select></div>
+        <div><label>Month</label><input type="month" id="bMonth"></div>
+      </div>
+      <div id="billTenant" class="sub" style="margin-top:10px"></div>
+      <div class="form-grid">
+        <div><label>Rent (₹)</label><input type="number" min="0" id="bRent"></div>
+        <div><label>Electricity / Current (₹)</label><input type="number" min="0" id="bCurrent"></div>
+        <div><label>Water (₹)</label><input type="number" min="0" id="bWater"></div>
+        <div><label>Other charges (₹)</label><input type="number" min="0" id="bOther"></div>
+        <div><label>Other charges note</label><input type="text" id="bOtherNote" placeholder="e.g. Repair, Garbage"></div>
+        <div><label>Previous arrears (₹)</label><input type="number" min="0" id="bArrears"></div>
+        <div><label>Discount (₹)</label><input type="number" min="0" id="bDiscount"></div>
+        <div><label>Status</label><select id="bPaid"><option value="0">Due (Unpaid)</option><option value="1">Paid</option></select></div>
+      </div>
+      <div class="totals" id="billTotals"></div>
+      <div class="row" style="margin-top:14px">
+        <button class="btn" id="btnSavePrint">💾 Save &amp; Print</button>
+        <button class="btn sec" id="btnSaveOnly">Save only</button>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>Bulk Printing</h2>
+      <p class="sub">Creates bills for every occupied house for the selected month (default amounts used where no bill exists yet) and prints them one after another.</p>
+      <button class="btn accent" id="btnPrintAll">🖨️ Generate &amp; Print ALL Occupied Houses</button>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="tab-history" class="tab">
+    <div class="panel">
+      <h2>Bill History</h2>
+      <div class="form-grid" style="margin-bottom:12px">
+        <div><label>Filter month</label><input type="month" id="fMonth"></div>
+        <div><label>Filter house</label><select id="fHouse"></select></div>
+        <div><label>Filter status</label><select id="fStatus"><option value="">All</option><option value="1">Paid</option><option value="0">Due</option></select></div>
+        <div style="display:flex;align-items:end"><button class="btn sec" id="btnClearF">Clear filters</button></div>
+      </div>
+      <div class="scroll"><table class="list">
+        <thead><tr><th>Bill No</th><th>House</th><th>Month</th><th>Tenant</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="histBody"></tbody>
+      </table></div>
+      <div id="histSummary" class="sub" style="margin-top:10px"></div>
+    </div>
+  </section>
+
+  <!-- SETTINGS -->
+  <section id="tab-settings" class="tab">
+    <div class="panel">
+      <h2>Property / Owner</h2>
+      <div class="form-grid">
+        <div><label>Owner / Property name</label><input type="text" id="sName"></div>
+        <div><label>Phone</label><input type="text" id="sPhone"></div>
+      </div>
+      <div style="margin-top:12px"><label>Address</label><textarea id="sAddress" rows="2"></textarea></div>
+    </div>
+    <div class="panel">
+      <h2>Default Bill Amounts</h2>
+      <div class="form-grid">
+        <div><label>Default rent (₹)</label><input type="number" min="0" id="sRent"></div>
+        <div><label>Default current bill (₹)</label><input type="number" min="0" id="sCurrent"></div>
+        <div><label>Default water bill (₹)</label><input type="number" min="0" id="sWater"></div>
+      </div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="btnSaveSettings">Save settings</button></div>
+    </div>
+    <div class="panel">
+      <h2>Backup &amp; Reset</h2>
+      <div class="row">
+        <button class="btn green" id="btnExport">⬇ Export backup (JSON)</button>
+        <button class="btn sec" id="btnImport">⬆ Import backup</button>
+        <input type="file" id="fileImport" accept="application/json,.json" style="display:none">
+        <button class="btn danger" id="btnReset">Reset all data</button>
+      </div>
+      <p class="sub" style="margin-top:10px">All data is stored only in this browser (localStorage). Export a backup regularly.</p>
+    </div>
+  </section>
+</main>
+
+<!-- TENANT MODAL -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h2 id="mTitle">House</h2>
+    <div class="sub" id="mSub"></div>
+
+    <div class="sect">Head of family</div>
+    <div class="form-grid">
+      <div><label>Full name</label><input type="text" id="tName"></div>
+      <div><label>Aadhaar (12 digits)</label><input type="text" id="tAadhaar" inputmode="numeric" maxlength="12"></div>
+      <div><label>Mobile (10 digits)</label><input type="text" id="tMobile" inputmode="numeric" maxlength="10"></div>
+      <div><label>Native place (village / district / state)</label><input type="text" id="tNative"></div>
+      <div><label>Work / occupation</label><input type="text" id="tWork"></div>
+      <div><label>Joining date</label><input type="date" id="tJoin"></div>
+      <div><label>Stay duration (months)</label>
+        <select id="tDur"><option>3</option><option>4</option><option>5</option></select></div>
+      <div><label>Advance / deposit (₹)</label><input type="number" min="0" id="tAdvance"></div>
+    </div>
+    <div class="lease" id="leaseInfo"></div>
+
+    <div class="sect">Family members</div>
+    <div id="memberList"></div>
+    <button class="btn sec" id="btnAddMember">+ Add member</button>
+
+    <div class="row end" style="margin-top:22px">
+      <button class="btn danger" id="btnVacate" style="margin-right:auto">Vacate house</button>
+      <button class="btn sec" id="btnCancel">Cancel</button>
+      <button class="btn" id="btnSaveTenant">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="printArea"></div>
+
+<script>
+(function(){
+'use strict';
+var KEY='rentManagerData_v1';
+var TOTAL=50;
+var $=function(id){return document.getElementById(id)};
+var state;
+
+/* ---------- Data ---------- */
+function defaults(){
+  var houses=[];
+  for(var i=1;i<=TOTAL;i++) houses.push({no:i,tenant:null,members:[]});
+  return {
+    settings:{name:'Property Owner',address:'Your address here',phone:'',rent:4000,current:300,water:200},
+    houses:houses, bills:[], billCounter:0
+  };
+}
+function load(){
+  try{
+    var raw=localStorage.getItem(KEY);
+    if(raw){var d=JSON.parse(raw); if(d&&d.houses&&d.houses.length){state=normalize(d);return;}}
+  }catch(e){}
+  state=defaults();
+}
+function normalize(d){
+  var base=defaults();
+  d.settings=Object.assign(base.settings,d.settings||{});
+  d.bills=d.bills||[];
+  d.billCounter=d.billCounter||d.bills.length;
+  var map={};d.houses.forEach(function(h){map[h.no]=h});
+  d.houses=base.houses.map(function(h){var x=map[h.no];return x?{no:h.no,tenant:x.tenant||null,members:x.members||[]}:h});
+  return d;
+}
+function save(){
+  try{localStorage.setItem(KEY,JSON.stringify(state));}catch(e){alert('Could not save to browser storage: '+e.message);}
+  updateStats();
+}
+
+/* ---------- Helpers ---------- */
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function num(v){var n=parseFloat(v);return isNaN(n)||n<0?0:n}
+function inr(n){
+  n=Math.round(n||0);
+  var neg=n<0;n=Math.abs(n);
+  var s=String(n),last=s.slice(-3),rest=s.slice(0,-3);
+  if(rest) last=rest.replace(/\B(?=(\d{2})+(?!\d))/g,',')+','+last;
+  return (neg?'-':'')+'₹'+last;
+}
+var ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+var tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function two(n){return n<20?ones[n]:tens[Math.floor(n/10)]+(n%10?' '+ones[n%10]:'')}
+function three(n){
+  var h=Math.floor(n/100),r=n%100,out='';
+  if(h) out+=ones[h]+' Hundred';
+  if(r) out+=(out?' ':'')+two(r);
+  return out;
+}
+function words(n){
+  n=Math.round(n);
+  if(n===0) return 'Zero';
+  var parts=[];
+  var cr=Math.floor(n/10000000);n%=10000000;
+  var lk=Math.floor(n/100000);n%=100000;
+  var th=Math.floor(n/1000);n%=1000;
+  if(cr) parts.push(words(cr)+' Crore');
+  if(lk) parts.push(two(lk)+' Lakh');
+  if(th) parts.push(two(th)+' Thousand');
+  if(n) parts.push(three(n));
+  return parts.join(' ');
+}
+function isOcc(h){return !!(h.tenant&&h.tenant.name)}
+function persons(h){return isOcc(h)?1+h.members.length:0}
+function ymd(d){var m=d.getMonth()+1,day=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(day<10?'0':'')+day}
+function curMonth(){var d=new Date();return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)}
+function fmtDate(s){if(!s)return '';var p=s.split('-');return p[2]+'-'+p[1]+'-'+p[0]}
+var MN=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function monthLabel(m){var p=m.split('-');return MN[+p[1]-1]+' '+p[0]}
+function fmtAadhaar(a){a=String(a||'');return a.length===12?a.replace(/(\d{4})(?=\d)/g,'$1 '):a}
+function leaseEnd(join,months){
+  if(!join) return null;
+  var p=join.split('-').map(Number);
+  var d=new Date(p[0],p[1]-1,p[2]);
+  var day=d.getDate();
+  d.setMonth(d.getMonth()+Number(months||3));
+  if(d.getDate()!==day) d.setDate(0);
+  return d;
+}
+function leaseStatus(t){
+  if(!t||!t.join) return null;
+  var end=leaseEnd(t.join,t.duration);
+  var today=new Date();today.setHours(0,0,0,0);
+  var days=Math.round((end-today)/86400000);
+  return {end:end,days:days};
+}
+
+/* ---------- Tabs ---------- */
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.toggle('active',t.id==='tab-'+name)});
+  document.querySelectorAll('#nav button').forEach(function(b){b.classList.toggle('active',b.dataset.tab===name)});
+  if(name==='houses') renderHouses();
+  if(name==='bills') loadBillForm();
+  if(name==='history') renderHistory();
+  if(name==='settings') loadSettings();
+}
+$('nav').addEventListener('click',function(e){if(e.target.dataset.tab) showTab(e.target.dataset.tab)});
+
+function updateStats(){
+  var occ=state.houses.filter(isOcc).length;
+  var unpaid=state.bills.filter(function(b){return !b.paid});
+  $('stats').textContent=occ+' occupied • '+(TOTAL-occ)+' vacant • '+unpaid.length+' bills due';
+  document.querySelector('header').style.setProperty('--occ',Math.round(occ/TOTAL*100)+'%');
+  var due=0,coll=0,cm=curMonth();
+  state.bills.forEach(function(b){if(!b.paid)due+=b.total;else if(b.month===cm)coll+=b.total});
+  var set=function(id,v){var e=$(id);if(e)e.textContent=v};
+  set('kOcc',occ);set('kOccSub',Math.round(occ/TOTAL*100)+'% of '+TOTAL+' houses');
+  set('kVac',TOTAL-occ);set('kVacSub','ready to let');
+  set('kDue',inr(due));set('kDueSub',unpaid.length+' unpaid bill'+(unpaid.length===1?'':'s'));
+  set('kColl',inr(coll));set('kCollSub','paid for '+monthLabel(cm));
+}
+
+/* ---------- Houses grid ---------- */
+var houseFilter='all',houseQuery='';
+function pad2(n){return n<10?'0'+n:String(n)}
+function matchHouse(h){
+  var q=houseQuery.trim().toLowerCase();
+  if(q){
+    var name=isOcc(h)?h.tenant.name.toLowerCase():'',mob=isOcc(h)?(h.tenant.mobile||''):'';
+    if(/^\d+$/.test(q)){ if(String(h.no)!==q&&mob.indexOf(q)<0&&name.indexOf(q)<0)return false; }
+    else if(name.indexOf(q)<0&&('house '+h.no)!==q) return false;
+  }
+  if(houseFilter==='occ') return isOcc(h);
+  if(houseFilter==='vac') return !isOcc(h);
+  if(houseFilter==='end'){ if(!isOcc(h))return false; var ls=leaseStatus(h.tenant); return !!ls&&ls.days<=7; }
+  return true;
+}
+function renderHouses(){
+  var g=$('houseGrid');g.innerHTML='';
+  var shown=0,lastBlock=-1;
+  state.houses.forEach(function(h){
+    if(!matchHouse(h))return;
+    var block=Math.floor((h.no-1)/10);
+    if(block!==lastBlock){
+      lastBlock=block;
+      var hd=document.createElement('div');hd.className='block-head';
+      var a=block*10+1;
+      hd.textContent='Block '+String.fromCharCode(65+block)+'  ·  Houses '+pad2(a)+' – '+pad2(a+9);
+      g.appendChild(hd);
+    }
+    var occ=isOcc(h),el=document.createElement('div');
+    el.className='house '+(occ?'occ':'vac');
+    el.setAttribute('data-no',pad2(h.no));
+    var tag='';
+    if(occ){
+      var ls=leaseStatus(h.tenant);
+      if(ls){
+        if(ls.days<0) tag='<span class="tag exp">EXPIRED</span>';
+        else if(ls.days<=7) tag='<span class="tag soon">'+ls.days+'d left</span>';
+      }
+    }
+    el.innerHTML=tag+'<div class="no">'+pad2(h.no)+'</div><div class="tn">'+(occ?esc(h.tenant.name):'Vacant')+'</div>'+
+      '<div class="meta">'+(occ?'👥 '+persons(h)+' '+(persons(h)===1?'person':'people'):'Click to add tenant')+'</div>';
+    el.onclick=function(){openModal(h.no)};
+    g.appendChild(el);shown++;
+  });
+  if(!shown) g.innerHTML='<div class="empty" style="grid-column:1/-1">No houses match your search.</div>';
+  updateStats();
+}
+$('hSearch').addEventListener('input',function(){houseQuery=this.value;renderHouses()});
+$('hChips').addEventListener('click',function(e){
+  var f=e.target.getAttribute('data-f');if(!f)return;
+  houseFilter=f;
+  this.querySelectorAll('button').forEach(function(b){b.classList.toggle('on',b===e.target)});
+  renderHouses();
+});
+
+/* ---------- Modal ---------- */
+var editing=null,draftMembers=[];
+function openModal(no){
+  editing=no;
+  var h=state.houses[no-1],t=h.tenant||{};
+  $('mTitle').textContent='House No. '+no;
+  $('mSub').textContent=isOcc(h)?'Edit tenant details':'Vacant — enter tenant details';
+  $('tName').value=t.name||'';
+  $('tAadhaar').value=t.aadhaar||'';
+  $('tMobile').value=t.mobile||'';
+  $('tNative').value=t.native||'';
+  $('tWork').value=t.work||'';
+  $('tJoin').value=t.join||ymd(new Date());
+  $('tDur').value=String(t.duration||3);
+  $('tAdvance').value=t.advance||'';
+  draftMembers=JSON.parse(JSON.stringify(h.members||[]));
+  renderMembers();updateLease();
+  $('btnVacate').style.display=isOcc(h)?'':'none';
+  $('modalBg').classList.add('show');
+  setTimeout(function(){$('tName').focus()},50);
+}
+function closeModal(){$('modalBg').classList.remove('show');editing=null}
+function updateLease(){
+  var el=$('leaseInfo'),join=$('tJoin').value,dur=$('tDur').value;
+  if(!join){el.className='lease';el.textContent='Lease end date: — (enter joining date)';return}
+  var ls=leaseStatus({join:join,duration:dur});
+  var msg='Lease ends on '+fmtDate(ymd(ls.end))+' — ';
+  el.className='lease';
+  if(ls.days<0){msg+='expired '+Math.abs(ls.days)+' day(s) ago';el.className='lease exp'}
+  else if(ls.days===0){msg+='ends today';el.className='lease soon'}
+  else{msg+=ls.days+' day(s) remaining';if(ls.days<=7)el.className='lease soon'}
+  el.textContent=msg;
+}
+$('tJoin').addEventListener('input',updateLease);
+$('tDur').addEventListener('change',updateLease);
+
+function renderMembers(){
+  var box=$('memberList');box.innerHTML='';
+  if(!draftMembers.length){box.innerHTML='<div class="sub">No family members added.</div>'}
+  draftMembers.forEach(function(m,i){
+    var d=document.createElement('div');d.className='member';
+    d.innerHTML='<div class="form-grid">'+
+      '<div><label>Name</label><input data-f="name" value="'+esc(m.name)+'"></div>'+
+      '<div><label>Age</label><input data-f="age" type="number" min="0" max="120" value="'+esc(m.age)+'"></div>'+
+      '<div><label>Aadhaar</label><input data-f="aadhaar" inputmode="numeric" maxlength="12" value="'+esc(m.aadhaar)+'"></div>'+
+      '<div><label>Work</label><input data-f="work" value="'+esc(m.work)+'"></div>'+
+      '<div><label>Native place</label><input data-f="native" value="'+esc(m.native)+'"></div>'+
+      '</div><div class="row end" style="margin-top:8px"><button class="btn danger sm" type="button">Remove</button></div>';
+    d.querySelectorAll('input').forEach(function(inp){
+      inp.addEventListener('input',function(){draftMembers[i][inp.dataset.f]=inp.value});
+    });
+    d.querySelector('button').onclick=function(){draftMembers.splice(i,1);renderMembers()};
+    box.appendChild(d);
+  });
+}
+$('btnAddMember').onclick=function(){
+  draftMembers.push({name:'',age:'',aadhaar:'',work:'',native:''});renderMembers();
+  var inputs=$('memberList').querySelectorAll('.member');
+  var last=inputs[inputs.length-1];if(last)last.querySelector('input').focus();
+};
+$('btnSaveTenant').onclick=function(){
+  var name=$('tName').value.trim();
+  if(!name){alert('Please enter the head of family name.');return}
+  var aad=$('tAadhaar').value.replace(/\s/g,''),mob=$('tMobile').value.replace(/\s/g,'');
+  if(aad&&!/^\d{12}$/.test(aad)){alert('Aadhaar number must be exactly 12 digits.');return}
+  if(mob&&!/^\d{10}$/.test(mob)){alert('Mobile number must be exactly 10 digits.');return}
+  for(var i=0;i<draftMembers.length;i++){
+    var a=String(draftMembers[i].aadhaar||'').replace(/\s/g,'');
+    if(a&&!/^\d{12}$/.test(a)){alert('Member '+(i+1)+': Aadhaar must be exactly 12 digits.');return}
+    draftMembers[i].aadhaar=a;
+  }
+  var h=state.houses[editing-1];
+  h.tenant={name:name,aadhaar:aad,mobile:mob,native:$('tNative').value.trim(),work:$('tWork').value.trim(),
+    join:$('tJoin').value,duration:Number($('tDur').value),advance:num($('tAdvance').value)};
+  h.members=draftMembers.filter(function(m){return m.name||m.aadhaar||m.work||m.native||m.age});
+  save();closeModal();renderHouses();refreshHouseSelects();
+};
+$('btnVacate').onclick=function(){
+  if(!confirm('Vacate House '+editing+'? Tenant and member details will be cleared. Bill history is kept.'))return;
+  var h=state.houses[editing-1];h.tenant=null;h.members=[];
+  save();closeModal();renderHouses();refreshHouseSelects();
+};
+$('btnCancel').onclick=closeModal;
+$('modalBg').addEventListener('mousedown',function(e){if(e.target===$('modalBg'))closeModal()});
+document.addEventListener('keydown',function(e){if(e.key==='Escape'&&$('modalBg').classList.contains('show'))closeModal()});
+['tAadhaar','tMobile'].forEach(function(id){$(id).addEventListener('input',function(){this.value=this.value.replace(/\D/g,'')})});
+
+/* ---------- Bills ---------- */
+function refreshHouseSelects(){
+  var s=$('bHouse'),prev=s.value,f=$('fHouse'),pf=f.value;
+  s.innerHTML='';f.innerHTML='<option value="">All houses</option>';
+  state.houses.forEach(function(h){
+    var o=document.createElement('option');o.value=h.no;
+    o.textContent='House '+h.no+(isOcc(h)?' — '+h.tenant.name:' (vacant)');s.appendChild(o);
+    var o2=document.createElement('option');o2.value=h.no;o2.textContent='House '+h.no;f.appendChild(o2);
+  });
+  if(prev)s.value=prev;if(pf)f.value=pf;
+}
+function findBill(house,month){
+  for(var i=0;i<state.bills.length;i++){var b=state.bills[i];if(b.house==house&&b.month===month)return b}
+  return null;
+}
+function loadBillForm(){
+  var no=+$('bHouse').value||1,month=$('bMonth').value||curMonth();
+  $('bMonth').value=month;
+  var h=state.houses[no-1],b=findBill(no,month);
+  if(isOcc(h)) $('billTenant').innerHTML='Tenant: <b>'+esc(h.tenant.name)+'</b> • '+persons(h)+' person(s)'+(b?' • <b>Existing bill #'+b.billNo+' loaded</b>':'');
+  else $('billTenant').innerHTML=b?'<b>House is vacant now</b> • Existing bill #'+b.billNo+' loaded':'<span style="color:var(--red)">This house is vacant — no tenant to bill.</span>';
+  var s=state.settings;
+  $('bRent').value=b?b.rent:s.rent;
+  $('bCurrent').value=b?b.current:s.current;
+  $('bWater').value=b?b.water:s.water;
+  $('bOther').value=b?b.other:0;
+  $('bOtherNote').value=b?b.otherNote:'';
+  $('bArrears').value=b?b.arrears:0;
+  $('bDiscount').value=b?b.discount:0;
+  $('bPaid').value=b&&b.paid?'1':'0';
+  calcTotals();
+}
+function formTotal(){
+  return num($('bRent').value)+num($('bCurrent').value)+num($('bWater').value)+num($('bOther').value)+num($('bArrears').value)-num($('bDiscount').value);
+}
+function calcTotals(){
+  var t=formTotal();
+  $('billTotals').innerHTML=
+    '<div class="t"><span>Rent</span><span>'+inr(num($('bRent').value))+'</span></div>'+
+    '<div class="t"><span>Electricity</span><span>'+inr(num($('bCurrent').value))+'</span></div>'+
+    '<div class="t"><span>Water</span><span>'+inr(num($('bWater').value))+'</span></div>'+
+    '<div class="t"><span>Other charges</span><span>'+inr(num($('bOther').value))+'</span></div>'+
+    '<div class="t"><span>Previous arrears</span><span>'+inr(num($('bArrears').value))+'</span></div>'+
+    '<div class="t"><span>Discount</span><span>− '+inr(num($('bDiscount').value))+'</span></div>'+
+    '<div class="t grand"><span>Total payable</span><span>'+inr(Math.max(0,t))+'</span></div>';
+}
+['bRent','bCurrent','bWater','bOther','bArrears','bDiscount'].forEach(function(id){$(id).addEventListener('input',calcTotals)});
+$('bHouse').addEventListener('change',loadBillForm);
+$('bMonth').addEventListener('change',loadBillForm);
+
+function snapshot(h){
+  var t=h.tenant||{};
+  return {name:t.name||'',aadhaar:t.aadhaar||'',mobile:t.mobile||'',native:t.native||'',work:t.work||'',persons:persons(h)||1};
+}
+function calcBill(b){return Math.max(0,num(b.rent)+num(b.current)+num(b.water)+num(b.other)+num(b.arrears)-num(b.discount))}
+function newBill(no,month){
+  state.billCounter++;
+  var s=state.settings,h=state.houses[no-1];
+  var b={id:'b'+Date.now()+'_'+state.billCounter,billNo:state.billCounter,house:no,month:month,date:ymd(new Date()),
+    tenant:snapshot(h),rent:s.rent,current:s.current,water:s.water,other:0,otherNote:'',arrears:0,discount:0,paid:false,total:0};
+  b.total=calcBill(b);
+  state.bills.push(b);return b;
+}
+function saveFormBill(){
+  var no=+$('bHouse').value,month=$('bMonth').value;
+  if(!month){alert('Please choose a month.');return null}
+  var h=state.houses[no-1],b=findBill(no,month);
+  if(!b&&!isOcc(h)){alert('House '+no+' is vacant. Add a tenant first.');return null}
+  if(!b) b=newBill(no,month);
+  else if(isOcc(h)) b.tenant=snapshot(h);
+  b.rent=num($('bRent').value);b.current=num($('bCurrent').value);b.water=num($('bWater').value);
+  b.other=num($('bOther').value);b.otherNote=$('bOtherNote').value.trim();
+  b.arrears=num($('bArrears').value);b.discount=num($('bDiscount').value);
+  b.paid=$('bPaid').value==='1';b.total=calcBill(b);
+  save();return b;
+}
+$('btnSavePrint').onclick=function(){var b=saveFormBill();if(b){loadBillForm();printBills([b])}};
+$('btnSaveOnly').onclick=function(){var b=saveFormBill();if(b){loadBillForm();alert('Bill #'+b.billNo+' saved.')}};
+$('btnPrintAll').onclick=function(){
+  var month=$('bMonth').value;
+  if(!month){alert('Please choose a month.');return}
+  var occ=state.houses.filter(isOcc);
+  if(!occ.length){alert('No occupied houses.');return}
+  var list=[],created=0;
+  occ.forEach(function(h){
+    var b=findBill(h.no,month);
+    if(!b){b=newBill(h.no,month);created++}
+    list.push(b);
+  });
+  save();loadBillForm();
+  if(!confirm('Print '+list.length+' bill(s) for '+monthLabel(month)+'? ('+created+' newly created)'))return;
+  printBills(list);
+};
+
+/* ---------- Print ---------- */
+function billHTML(b){
+  var s=state.settings,t=b.tenant||{},rows=[],n=1;
+  function row(label,amt){rows.push('<tr><td>'+(n++)+'</td><td>'+label+'</td><td class="amt">'+inr(amt)+'</td></tr>')}
+  row('House Rent',b.rent);
+  row('Electricity (Current) Bill',b.current);
+  row('Water Bill',b.water);
+  if(num(b.other)>0||b.otherNote) row('Other Charges'+(b.otherNote?' ('+esc(b.otherNote)+')':''),b.other);
+  if(num(b.arrears)>0) row('Previous Arrears',b.arrears);
+  if(num(b.discount)>0) rows.push('<tr><td>'+(n++)+'</td><td>Discount</td><td class="amt">− '+inr(b.discount)+'</td></tr>');
+  var total=calcBill(b);
+  return '<div class="bill">'+
+    '<div class="head"><h1>'+esc(s.name)+'</h1><p>'+esc(s.address).replace(/\n/g,'<br>')+'</p>'+(s.phone?'<p>📞 '+esc(s.phone)+'</p>':'')+'</div>'+
+    '<div class="title">RENT RECEIPT / BILL</div>'+
+    '<div class="stamp '+(b.paid?'paid':'due')+'">'+(b.paid?'PAID':'DUE')+'</div>'+
+    '<div class="topline"><div class="badge-no"><small>HOUSE NO.</small><b>'+b.house+'</b></div>'+
+    '<div class="info"><div><b>Bill No:</b> '+String(b.billNo).padStart(4,'0')+'</div><div><b>Date:</b> '+fmtDate(b.date)+'</div><div><b>Month:</b> '+monthLabel(b.month)+'</div></div></div>'+
+    '<table class="tinfo"><tbody>'+
+    '<tr><td>Tenant Name</td><td>'+esc(t.name)+'</td></tr>'+
+    '<tr><td>Aadhaar No.</td><td>'+esc(fmtAadhaar(t.aadhaar))+'</td></tr>'+
+    '<tr><td>Mobile No.</td><td>'+esc(t.mobile)+'</td></tr>'+
+    '<tr><td>Native Place</td><td>'+esc(t.native)+'</td></tr>'+
+    '<tr><td>Work / Occupation</td><td>'+esc(t.work)+'</td></tr>'+
+    '<tr><td>Number of Persons</td><td>'+esc(t.persons)+'</td></tr>'+
+    '</tbody></table>'+
+    '<table><thead><tr><th style="width:50px">S.No</th><th>Description</th><th class="amt" style="width:140px">Amount</th></tr></thead><tbody>'+rows.join('')+
+    '<tr class="total"><td colspan="2" style="text-align:right">TOTAL PAYABLE</td><td class="amt">'+inr(total)+'</td></tr></tbody></table>'+
+    '<div class="words"><b>Amount in words:</b> Rupees '+words(total)+' Only</div>'+
+    '<div class="sign"><div>Tenant Signature</div><div>Owner Signature</div></div>'+
+    '<div class="foot">This is a computer generated rent bill — Thank you</div>'+
+    '</div>';
+}
+function printBills(list){
+  $('printArea').innerHTML=list.map(billHTML).join('');
+  setTimeout(function(){window.print()},150);
+}
+window.addEventListener('afterprint',function(){$('printArea').innerHTML=''});
+
+/* ---------- History ---------- */
+function renderHistory(){
+  var fm=$('fMonth').value,fh=$('fHouse').value,fs=$('fStatus').value;
+  var list=state.bills.filter(function(b){
+    return (!fm||b.month===fm)&&(!fh||String(b.house)===fh)&&(fs===''||(fs==='1')===!!b.paid);
+  }).sort(function(a,b){return a.month<b.month?1:a.month>b.month?-1:b.house-a.house===0?0:a.house-b.house});
+  var body=$('histBody');body.innerHTML='';
+  if(!list.length){body.innerHTML='<tr><td colspan="7" class="empty">No bills found.</td></tr>'}
+  var sumP=0,sumD=0;
+  list.forEach(function(b){
+    if(b.paid)sumP+=b.total;else sumD+=b.total;
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td>#'+String(b.billNo).padStart(4,'0')+'</td><td>'+b.house+'</td><td>'+monthLabel(b.month)+'</td><td>'+esc(b.tenant&&b.tenant.name)+'</td>'+
+      '<td><b>'+inr(b.total)+'</b></td><td><span class="badge '+(b.paid?'paid':'due')+'">'+(b.paid?'PAID':'DUE')+'</span></td>'+
+      '<td class="row"><button class="btn sm" data-a="print">Reprint</button><button class="btn sm sec" data-a="toggle">'+(b.paid?'Mark due':'Mark paid')+'</button><button class="btn sm danger" data-a="del">Delete</button></td>';
+    tr.querySelector('[data-a=print]').onclick=function(){printBills([b])};
+    tr.querySelector('[data-a=toggle]').onclick=function(){b.paid=!b.paid;save();renderHistory()};
+    tr.querySelector('[data-a=del]').onclick=function(){
+      if(!confirm('Delete bill #'+b.billNo+' (House '+b.house+', '+monthLabel(b.month)+')?'))return;
+      state.bills=state.bills.filter(function(x){return x.id!==b.id});save();renderHistory();
+    };
+    body.appendChild(tr);
+  });
+  $('histSummary').innerHTML='Showing '+list.length+' bill(s) • Collected: <b>'+inr(sumP)+'</b> • Pending: <b>'+inr(sumD)+'</b>';
+}
+['fMonth','fHouse','fStatus'].forEach(function(id){$(id).addEventListener('change',renderHistory)});
+$('btnClearF').onclick=function(){$('fMonth').value='';$('fHouse').value='';$('fStatus').value='';renderHistory()};
+
+/* ---------- Settings ---------- */
+function loadSettings(){
+  var s=state.settings;
+  $('sName').value=s.name;$('sAddress').value=s.address;$('sPhone').value=s.phone;
+  $('sRent').value=s.rent;$('sCurrent').value=s.current;$('sWater').value=s.water;
+}
+$('btnSaveSettings').onclick=function(){
+  var s=state.settings;
+  s.name=$('sName').value.trim()||'Property Owner';s.address=$('sAddress').value.trim();s.phone=$('sPhone').value.trim();
+  s.rent=num($('sRent').value);s.current=num($('sCurrent').value);s.water=num($('sWater').value);
+  save();alert('Settings saved.');
+};
+$('btnExport').onclick=function(){
+  var blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='rent-manager-backup-'+ymd(new Date())+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(a.href)},1000);
+};
+$('btnImport').onclick=function(){$('fileImport').click()};
+$('fileImport').addEventListener('change',function(){
+  var f=this.files[0];if(!f)return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var d=JSON.parse(r.result);
+      if(!d||!Array.isArray(d.houses)||!d.settings)throw new Error('Not a valid backup file.');
+      if(!confirm('Import this backup? Current data will be replaced.'))return;
+      state=normalize(d);save();refreshHouseSelects();loadSettings();renderHouses();alert('Backup imported.');
+    }catch(e){alert('Import failed: '+e.message)}
+  };
+  r.readAsText(f);this.value='';
+});
+$('btnReset').onclick=function(){
+  if(!confirm('This will permanently delete ALL houses, tenants, bills and settings. Continue?'))return;
+  if(prompt('Type RESET to confirm:')!=='RESET'){alert('Reset cancelled.');return}
+  state=defaults();save();refreshHouseSelects();loadSettings();renderHouses();loadBillForm();
+};
+
+/* ---------- Init ---------- */
+load();save();
+$('bMonth').value=curMonth();
+refreshHouseSelects();
+renderHouses();loadSettings();loadBillForm();
+})();
+</script>
+</body>
+</html>
